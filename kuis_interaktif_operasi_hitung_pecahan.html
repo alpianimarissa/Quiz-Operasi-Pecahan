@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuis Interaktif Operasi Hitung Pecahan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+        }
+        .frac {
+            display: inline-flex;
+            flex-direction: column;
+            vertical-align: middle;
+            text-align: center;
+            font-weight: 700;
+            padding: 0 3px;
+            line-height: 1;
+        }
+        .frac .top {
+            border-bottom: 2px solid currentColor;
+            padding-bottom: 2px;
+            line-height: 1;
+        }
+        .frac .bottom {
+            padding-top: 2px;
+            line-height: 1;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col justify-between bg-slate-50">
+
+    <header class="bg-indigo-600 text-white shadow-md">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div>
+                <span class="bg-indigo-500 text-indigo-100 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide">Matematika SD Kelas 5-6</span>
+                <h1 class="text-base sm:text-lg font-extrabold mt-0.5">Kuis Operasi Hitung Pecahan (30 Soal)</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="bg-indigo-700/60 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2">
+                    <span>🏆 Skor: <span id="score-text" class="text-amber-300 font-extrabold">0</span> / 30</span>
+                </div>
+                <button onclick="resetQuiz()" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-1.5 rounded-xl font-bold transition shadow-sm flex items-center gap-1">
+                    🔄 Reset Progress
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 my-auto py-4 w-full space-y-4">
+
+        <!-- Progress Indicator -->
+        <section class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+            <div class="flex justify-between items-center text-xs font-bold text-slate-600">
+                <span>Kemajuan: <span id="answered-count" class="text-indigo-600">0</span>/30 Terjawab</span>
+                <span id="completion-percentage">0%</span>
+            </div>
+            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
+                <div id="progress-bar" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
+            </div>
+        </section>
+
+        <!-- Question View Box -->
+        <section id="question-card-container" class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm min-h-[360px] flex flex-col justify-between space-y-4">
+            <!-- Dynamic Question Content Inserted Here -->
+        </section>
+
+        <!-- Navigation Buttons Controls -->
+        <section class="flex justify-between items-center gap-3">
+            <button id="btn-prev" onclick="prevQuestion()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-bold px-5 py-2.5 rounded-xl transition flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                ⬅️ Sebelumnya
+            </button>
+            
+            <div class="text-xs font-extrabold text-slate-500">
+                Soal <span id="current-q-num" class="text-indigo-600 text-sm">1</span> dari 30
+            </div>
+
+            <button id="btn-next" onclick="nextQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                Selanjutnya ➡️
+            </button>
+        </section>
+
+        <!-- Navigation Grid Modal / Grid View -->
+        <section class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                <h2 class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                    <span>📍 Navigasi Cepat Soal:</span>
+                </h2>
+                <div class="flex flex-wrap gap-1 text-[11px] font-semibold">
+                    <button onclick="filterGrid('all')" class="px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-700 font-bold" id="btn-filter-all">Semua</button>
+                    <button onclick="filterGrid('direct')" class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200" id="btn-filter-direct">Direct (10)</button>
+                    <button onclick="filterGrid('story')" class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200" id="btn-filter-story">Cerita (20)</button>
+                </div>
+            </div>
+            
+            <div id="nav-grid" class="grid grid-cols-6 sm:grid-cols-10 gap-1.5">
+                <!-- Nav grid buttons populated via JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-500">
+        Kuis Interaktif Operasi Hitung Pecahan SD Kelas 5-6
+    </footer>
+
+    <script>
+        // Data 30 Soal dengan kunci jawaban teracak secara acak & acak penuh (tanpa pola berulang A-B-C-D)
+        const rawQuestions = [
+            // --- 10 SOAL LANGSUNG (Direct Operations) ---
+            {
+                id: 1,
+                type: 'direct',
+                text: 'Hasil dari <div class="frac"><span class="top">2</span><span class="bottom">5</span></div> + <div class="frac"><span class="top">1</span><span class="bottom">3</span></div> adalah ...',
+                options: [
+                    '<div class="frac"><span class="top">3</span><span class="bottom">8</span></div>',
+                    '<div class="frac"><span class="top">7</span><span class="bottom">15</span></div>',
+                    '<div class="frac"><span class="top">11</span><span class="bottom">15</span></div>',
+                    '<div class="frac"><span class="top">2</span><span class="bottom">15</span></div>'
+                ],
+                correctIndex: 2, // C
+                explanation: 'Samakan penyebut dengan KPK(5, 3) = 15. <br> (2×3)/15 + (1×5)/15 = 6/15 + 5/15 = 11/15.'
+            },
+            {
+                id: 2,
+                type: 'direct',
+                text: 'Hasil pengurangan dari 2 <div class="frac"><span class="top">3</span><span class="bottom">4</span></div> - 1 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> adalah ...',
+                options: [
+                    '1 <div class="frac"><span class="top">1</span><span class="bottom">4</span></div>',
+                    '1 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div>',
+                    '1 <div class="frac"><span class="top">3</span><span class="bottom">8</span></div>',
+                    '<div class="frac"><span class="top">3</span><span class="bottom">4</span></div>'
+                ],
+                correctIndex: 0, // A
+                explanation: 'Samakan penyebut pecahan: 2 3/4 - 1 2/4 = (2-1) + (3/4 - 2/4) = 1 1/4.'
+            },
+            {
+                id: 3,
+                type: 'direct',
+                text: 'Hasil dari <div class="frac"><span class="top">3</span><span class="bottom">8</span></div> × <div class="frac"><span class="top">4</span><span class="bottom">9</span></div> adalah ...',
+                options: [
+                    '<div class="frac"><span class="top">7</span><span class="bottom">17</span></div>',
+                    '<div class="frac"><span class="top">12</span><span class="bottom">72</span></div>',
+                    '<div class="frac"><span class="top">2</span><span class="bottom">3</span></div>',
+                    '<div class="frac"><span class="top">1</span><span class="bottom">6</span></div>'
+                ],
+                correctIndex: 3, // D
+                explanation: 'Perkalian langsung: (3×4) / (8×9) = 12/72. Sederhanakan dengan dibagi 12 menjadi 1/6.'
+            },
+            {
+                id: 4,
+                type: 'direct',
+                text: 'Hasil pembagian dari <div class="frac"><span class="top">5</span><span class="bottom">6</span></div> ÷ <div class="frac"><span class="top">2</span><span class="bottom">3</span></div> adalah ...',
+                options: [
+                    '<div class="frac"><span class="top">5</span><span class="bottom">9</span></div>',
+                    '1 <div class="frac"><span class="top">1</span><span class="bottom">4</span></div>',
+                    '1 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div>',
+                    '<div class="frac"><span class="top">10</span><span class="bottom">18</span></div>'
+                ],
+                correctIndex: 1, // B
+                explanation: 'Gunakan metode KFC (Keep-Flip-Change): 5/6 × 3/2 = 15/12 = 5/4 = 1 1/4.'
+            },
+            {
+                id: 5,
+                type: 'direct',
+                text: 'Hitunglah nilai dari 1 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> × 2 <div class="frac"><span class="top">2</span><span class="bottom">3</span></div> = ...',
+                options: [
+                    '3 <div class="frac"><span class="top">2</span><span class="bottom">6</span></div>',
+                    '3 <div class="frac"><span class="top">1</span><span class="bottom">3</span></div>',
+                    '4',
+                    '4 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div>'
+                ],
+                correctIndex: 2, // C
+                explanation: 'Ubah ke pecahan biasa: (3/2) × (8/3) = 24/6 = 4.'
+            },
+            {
+                id: 6,
+                type: 'direct',
+                text: 'Hasil dari 3 <div class="frac"><span class="top">1</span><span class="bottom">3</span></div> ÷ 2 adalah ...',
+                options: [
+                    '6 <div class="frac"><span class="top">2</span><span class="bottom">3</span></div>',
+                    '1 <div class="frac"><span class="top">1</span><span class="bottom">6</span></div>',
+                    '2 <div class="frac"><span class="top">1</span><span class="bottom">3</span></div>',
+                    '1 <div class="frac"><span class="top">2</span><span class="bottom">3</span></div>'
+                ],
+                correctIndex: 3, // D
+                explanation: 'Ubah 3 1/3 menjadi 10/3 dan 2 menjadi 2/1. KFC: 10/3 × 1/2 = 10/6 = 5/3 = 1 2/3.'
+            },
+            {
+                id: 7,
+                type: 'direct',
+                text: 'Berapakah hasil dari 4 - 1 <div class="frac"><span class="top">3</span><span class="bottom">5</span></div> ?',
+                options: [
+                    '3 <div class="frac"><span class="top">2</span><span class="bottom">5</span></div>',
+                    '2 <div class="frac"><span class="top">2</span><span class="bottom">5</span></div>',
+                    '2 <div class="frac"><span class="top">3</span><span class="bottom">5</span></div>',
+                    '3 <div class="frac"><span class="top">3</span><span class="bottom">5</span></div>'
+                ],
+                correctIndex: 1, // B
+                explanation: 'Ubah 4 menjadi 3 5/5. Lalu hitung: 3 5/5 - 1 3/5 = (3-1) + (5/5 - 3/5) = 2 2/5.'
+            },
+            {
+                id: 8,
+                type: 'direct',
+                text: 'Hasil dari <div class="frac"><span class="top">4</span><span class="bottom">7</span></div> × 3 adalah ...',
+                options: [
+                    '1 <div class="frac"><span class="top">5</span><span class="bottom">7</span></div>',
+                    '<div class="frac"><span class="top">12</span><span class="bottom">21</span></div>',
+                    '<div class="frac"><span class="top">4</span><span class="bottom">21</span></div>',
+                    '2 <div class="frac"><span class="top">1</span><span class="bottom">7</span></div>'
+                ],
+                correctIndex: 0, // A
+                explanation: '4/7 × 3/1 = 12/7 = 1 5/7.'
+            },
+            {
+                id: 9,
+                type: 'direct',
+                text: 'Hasil dari 2 <div class="frac"><span class="top">1</span><span class="bottom">4</span></div> ÷ 1 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> adalah ...',
+                options: [
+                    '3 <div class="frac"><span class="top">3</span><span class="bottom">8</span></div>',
+                    '1 <div class="frac"><span class="top">3</span><span class="bottom">4</span></div>',
+                    '1 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div>',
+                    '2'
+                ],
+                correctIndex: 2, // C
+                explanation: 'Ubah ke biasa: (9/4) ÷ (3/2). Gunakan KFC: 9/4 × 2/3 = 18/12 = 3/2 = 1 1/2.'
+            },
+            {
+                id: 10,
+                type: 'direct',
+                text: 'Hasil penjumlahan dari 1 <div class="frac"><span class="top">5</span><span class="bottom">6</span></div> + 2 <div class="frac"><span class="top">3</span><span class="bottom">4</span></div> adalah ...',
+                options: [
+                    '3 <div class="frac"><span class="top">8</span><span class="bottom">10</span></div>',
+                    '4 <div class="frac"><span class="top">1</span><span class="bottom">12</span></div>',
+                    '3 <div class="frac"><span class="top">7</span><span class="bottom">12</span></div>',
+                    '4 <div class="frac"><span class="top">7</span><span class="bottom">12</span></div>'
+                ],
+                correctIndex: 3, // D
+                explanation: 'Samakan penyebut (KPK 6 dan 4 = 12): 1 10/12 + 2 9/12 = 3 19/12 = 3 + 1 7/12 = 4 7/12.'
+            },
+
+            // --- 20 SOAL CERITA (Word Problems) ---
+            {
+                id: 11,
+                type: 'story',
+                text: 'Ibu memiliki terigu sebanyak 2 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> kg. Kemudian Ibu membeli lagi 1 <div class="frac"><span class="top">3</span><span class="bottom">4</span></div> kg. Berapa total berat terigu Ibu seluruhnya?',
+                options: [
+                    '3 <div class="frac"><span class="top">4</span><span class="bottom">6</span></div> kg',
+                    '4 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> kg',
+                    '4 <div class="frac"><span class="top">1</span><span class="bottom">4</span></div> kg',
+                    '3 <div class="frac"><span class="top">3</span><span class="bottom">4</span></div> kg'
+                ],
+                correctIndex: 2, // C
+                explanation: 'Kata kunci "membeli lagi" berarti dijumlahkan: 2 1/2 + 1 3/4 = 2 2/4 + 1 3/4 = 3 5/4 = 4 1/4 kg.'
+            },
+            {
+                id: 12,
+                type: 'story',
+                text: 'Budi memiliki pita sepanjang 5 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> meter. Ia memotong pita tersebut sepanjang 2 <div class="frac"><span class="top">1</span><span class="bottom">4</span></div> meter untuk mengikat hadiah. Berapa meter sisa pita Budi?',
+                options: [
+                    '3 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> meter',
+                    '3 <div class="frac"><span class="top">1</span><span class="bottom">4</span></div> meter',
+                    '2 <div class="frac"><span class="top">3</span><span class="bottom">4</span></div> meter',
+                    '3 meter'
+                ],
+                correctIndex: 1, // B
+                explanation: 'Kata kunci "memotong / sisa" berarti dikurangi: 5 2/4 - 2 1/4 = 3 1/4 meter.'
+            },
+            {
+                id: 13,
+                type: 'story',
+                text: 'Pak Doni memiliki 6 botol air mineral. Setiap botol berisi <div class="frac"><span class="top">2</span><span class="bottom">3</span></div> liter air. Berapa liter total air yang dimiliki Pak Doni?',
+                options: [
+                    '4 liter',
+                    '3 liter',
+                    '3 <div class="frac"><span class="top">1</span><span class="bottom">3</span></div> liter',
+                    '4 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> liter'
+                ],
+                correctIndex: 0, // A
+                explanation: 'Operasi perkalian: 6 × 2/3 = 12/3 = 4 liter.'
+            },
+            {
+                id: 14,
+                type: 'story',
+                text: 'Siti mempunyai <div class="frac"><span class="top">3</span><span class="bottom">4</span></div> bagian kue. Ia membagikan kue tersebut secara merata kepada 3 orang temannya. Berapa bagian yang didapat oleh setiap teman Siti?',
+                options: [
+                    '<div class="frac"><span class="top">1</span><span class="bottom">3</span></div> bagian',
+                    '<div class="frac"><span class="top">3</span><span class="bottom">12</span></div> bagian',
+                    '<div class="frac"><span class="top">1</span><span class="bottom">2</span></div> bagian',
+                    '<div class="frac"><span class="top">1</span><span class="bottom">4</span></div> bagian'
+                ],
+                correctIndex: 3, // D
+                explanation: 'Kata kunci "membagikan merata" berarti pembagian: 3/4 ÷ 3 = 3/4 × 1/3 = 3/12 = 1/4 bagian.'
+            },
+            {
+                id: 15,
+                type: 'story',
+                text: 'Panjang kebun Pak Ahmad adalah 3 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> meter dan lebarnya adalah 2 meter. Berapakah luas kebun Pak Ahmad tersebut?',
+                options: [
+                    '5 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> m²',
+                    '7 m²',
+                    '6 m²',
+                    '6 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> m²'
+                ],
+                correctIndex: 1, // B
+                explanation: 'Luas = Panjang × Lebar: 3 1/2 × 2 = (7/2) × 2 = 14/2 = 7 m².'
+            },
+            {
+                id: 16,
+                type: 'story',
+                text: 'Sebuah tangki berisi 4 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> liter minyak tanah. Minyak tersebut akan dimasukkan ke dalam botol-botol kecil berukuran <div class="frac"><span class="top">3</span><span class="bottom">4</span></div> liter. Berapa banyak botol yang dibutuhkan?',
+                options: [
+                    '5 botol',
+                    '7 botol',
+                    '8 botol',
+                    '6 botol'
+                ],
+                correctIndex: 3, // D
+                explanation: 'Kata kunci "dimasukkan ke wadah" berarti pembagian: (9/2) ÷ (3/4) = 9/2 × 4/3 = 36/6 = 6 botol.'
+            },
+            {
+                id: 17,
+                type: 'story',
+                text: 'Pak Raden memiliki tanah seluas 1 hektar. Sebanyak <div class="frac"><span class="top">3</span><span class="bottom">5</span></div> bagian ditanami padi, dan sisanya ditanami jagung. Berapa bagian tanah yang ditanami jagung?',
+                options: [
+                    '<div class="frac"><span class="top">2</span><span class="bottom">5</span></div> bagian',
+                    '<div class="frac"><span class="top">1</span><span class="bottom">5</span></div> bagian',
+                    '<div class="frac"><span class="top">3</span><span class="bottom">5</span></div> bagian',
+                    '<div class="frac"><span class="top">4</span><span class="bottom">5</span></div> bagian'
+                ],
+                correctIndex: 0, // A
+                explanation: 'Sisa tanah = 1 - 3/5 = 5/5 - 3/5 = 2/5 bagian.'
+            },
+            {
+                id: 18,
+                type: 'story',
+                text: 'Paman membeli 3 karung beras. Setiap karung beratnya 12 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> kg. Berapa kg total berat seluruh beras paman?',
+                options: [
+                    '36 kg',
+                    '37 kg',
+                    '37 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> kg',
+                    '38 kg'
+                ],
+                correctIndex: 2, // C
+                explanation: 'Perkalian: 3 × 12 1/2 = 3 × 25/2 = 75/2 = 37 1/2 kg.'
+            },
+            {
+                id: 19,
+                type: 'story',
+                text: 'Ani membeli kain sepanjang 3 <div class="frac"><span class="top">3</span><span class="bottom">4</span></div> meter. Kain tersebut digunakan untuk membuat baju 2 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> meter. Berapa sisa kain Ani?',
+                options: [
+                    '1 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> meter',
+                    '1 <div class="frac"><span class="top">1</span><span class="bottom">4</span></div> meter',
+                    '<div class="frac"><span class="top">3</span><span class="bottom">4</span></div> meter',
+                    '1 <div class="frac"><span class="top">3</span><span class="bottom">4</span></div> meter'
+                ],
+                correctIndex: 1, // B
+                explanation: 'Pengurangan: 3 3/4 - 2 2/4 = 1 1/4 meter.'
+            },
+            {
+                id: 20,
+                type: 'story',
+                text: 'Di dalam kelas terdapat 30 murid. Sebanyak <div class="frac"><span class="top">2</span><span class="bottom">3</span></div> dari seluruh murid adalah siswa perempuan. Berapa jumlah siswa perempuan di kelas tersebut?',
+                options: [
+                    '15 siswa',
+                    '18 siswa',
+                    '24 siswa',
+                    '20 siswa'
+                ],
+                correctIndex: 3, // D
+                explanation: 'Perkalian bagian: (2/3) × 30 = 60/3 = 20 siswa.'
+            },
+            {
+                id: 21,
+                type: 'story',
+                text: 'Andi berjalan sejauh 1 <div class="frac"><span class="top">1</span><span class="bottom">3</span></div> km di pagi hari dan 2 <div class="frac"><span class="top">1</span><span class="bottom">6</span></div> km di sore hari. Berapa km jarak total yang ditempuh Andi?',
+                options: [
+                    '3 <div class="frac"><span class="top">2</span><span class="bottom">9</span></div> km',
+                    '3 <div class="frac"><span class="top">1</span><span class="bottom">3</span></div> km',
+                    '3 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> km',
+                    '3 <div class="frac"><span class="top">2</span><span class="bottom">3</span></div> km'
+                ],
+                correctIndex: 2, // C
+                explanation: 'Penjumlahan: 1 2/6 + 2 1/6 = 3 3/6 = 3 1/2 km.'
+            },
+            {
+                id: 22,
+                type: 'story',
+                text: 'Sebuah tali yang panjangnya 8 meter dipotong-potong menjadi beberapa bagian yang masing-masing panjangnya <div class="frac"><span class="top">4</span><span class="bottom">5</span></div> meter. Berapa potongan tali yang diperoleh?',
+                options: [
+                    '10 potongan',
+                    '8 potongan',
+                    '9 potongan',
+                    '12 potongan'
+                ],
+                correctIndex: 0, // A
+                explanation: 'Pembagian: 8 ÷ (4/5) = 8 × (5/4) = 40/4 = 10 potongan.'
+            },
+            {
+                id: 23,
+                type: 'story',
+                text: 'Pak Budi menyiapkan <div class="frac"><span class="top">4</span><span class="bottom">5</span></div> liter pupuk cair. Ia menggunakannya sebanyak <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> bagian untuk tanaman mawar. Berapa liter pupuk yang digunakan untuk mawar?',
+                options: [
+                    '<div class="frac"><span class="top">3</span><span class="bottom">10</span></div> liter',
+                    '<div class="frac"><span class="top">2</span><span class="bottom">5</span></div> liter',
+                    '<div class="frac"><span class="top">1</span><span class="bottom">5</span></div> liter',
+                    '<div class="frac"><span class="top">3</span><span class="bottom">5</span></div> liter'
+                ],
+                correctIndex: 1, // B
+                explanation: 'Mencari bagian perkalian: (4/5) × (1/2) = 4/10 = 2/5 liter.'
+            },
+            {
+                id: 24,
+                type: 'story',
+                text: 'Rina mempunyai persediaan beras 4 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> kg. Memasak beras menghabiskan 1 <div class="frac"><span class="top">3</span><span class="bottom">4</span></div> kg. Berapa kg sisa beras Rina?',
+                options: [
+                    '2 <div class="frac"><span class="top">1</span><span class="bottom">4</span></div> kg',
+                    '3 <div class="frac"><span class="top">1</span><span class="bottom">4</span></div> kg',
+                    '2 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> kg',
+                    '2 <div class="frac"><span class="top">3</span><span class="bottom">4</span></div> kg'
+                ],
+                correctIndex: 3, // D
+                explanation: '4 2/4 - 1 3/4 = 3 6/4 - 1 3/4 = 2 3/4 kg.'
+            },
+            {
+                id: 25,
+                type: 'story',
+                text: 'Di perpustakaan sekolah, <div class="frac"><span class="top">3</span><span class="bottom">8</span></div> dari seluruh buku adalah buku cerita, dan <div class="frac"><span class="top">1</span><span class="bottom">4</span></div> bagian adalah buku pelajaran. Berapa jumlah bagian kedua jenis buku tersebut?',
+                options: [
+                    '<div class="frac"><span class="top">4</span><span class="bottom">12</span></div> bagian',
+                    '<div class="frac"><span class="top">1</span><span class="bottom">2</span></div> bagian',
+                    '<div class="frac"><span class="top">5</span><span class="bottom">8</span></div> bagian',
+                    '<div class="frac"><span class="top">7</span><span class="bottom">8</span></div> bagian'
+                ],
+                correctIndex: 2, // C
+                explanation: '3/8 + 1/4 = 3/8 + 2/8 = 5/8 bagian.'
+            },
+            {
+                id: 26,
+                type: 'story',
+                text: 'Pak Tono membawa 15 kg buah mangga. Sebanyak <div class="frac"><span class="top">2</span><span class="bottom">5</span></div> bagian diberikan kepada tetangganya. Berapa kg mangga yang diberikan kepada tetangga?',
+                options: [
+                    '5 kg',
+                    '6 kg',
+                    '8 kg',
+                    '9 kg'
+                ],
+                correctIndex: 1, // B
+                explanation: '15 × (2/5) = 30/5 = 6 kg.'
+            },
+            {
+                id: 27,
+                type: 'story',
+                text: 'Ibu memiliki 2 <div class="frac"><span class="top">1</span><span class="bottom">4</span></div> liter sirup. Sirup tersebut dituangkan ke dalam beberapa gelas masing-masing <div class="frac"><span class="top">1</span><span class="bottom">4</span></div> liter. Berapa banyak gelas yang terisi?',
+                options: [
+                    '8 gelas',
+                    '10 gelas',
+                    '12 gelas',
+                    '9 gelas'
+                ],
+                correctIndex: 3, // D
+                explanation: '(9/4) ÷ (1/4) = 9/4 × 4/1 = 9 gelas.'
+            },
+            {
+                id: 28,
+                type: 'story',
+                text: 'Nenek membeli gula 3 kg. Digunakan untuk membuat kue 1 <div class="frac"><span class="top">1</span><span class="bottom">3</span></div> kg dan membuat teh <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> kg. Berapa sisa gula Nenek?',
+                options: [
+                    '1 <div class="frac"><span class="top">1</span><span class="bottom">6</span></div> kg',
+                    '1 <div class="frac"><span class="top">1</span><span class="bottom">3</span></div> kg',
+                    '1 <div class="frac"><span class="top">1</span><span class="bottom">2</span></div> kg',
+                    '2 <div class="frac"><span class="top">1</span><span class="bottom">6</span></div> kg'
+                ],
+                correctIndex: 0, // A
+                explanation: 'Total digunakan = 1 1/3 + 1/2 = 1 2/6 + 3/6 = 1 5/6 kg. Sisa = 3 - 1 5/6 = 2 6/6 - 1 5/6 = 1 1/6 kg.'
+            },
+            {
+                id: 29,
+                type: 'story',
+                text: 'Sebuah papan kayu panjangnya 2 <div class="frac"><span class="top">2</span><span class="bottom">5</span></div> meter. Ayah memotong papan tersebut menjadi 2 bagian sama panjang. Berapa meter panjang setiap potongan?',
+                options: [
+                    '1 <div class="frac"><span class="top">2</span><span class="bottom">5</span></div> meter',
+                    '<div class="frac"><span class="top">4</span><span class="bottom">5</span></div> meter',
+                    '1 <div class="frac"><span class="top">1</span><span class="bottom">5</span></div> meter',
+                    '1 meter'
+                ],
+                correctIndex: 2, // C
+                explanation: '(12/5) ÷ 2 = (12/5) × (1/2) = 12/10 = 6/5 = 1 1/5 meter.'
+            },
+            {
+                id: 30,
+                type: 'story',
+                text: 'Seorang pedagang memiliki 10 kg telur. Sebanyak <div class="frac"><span class="top">1</span><span class="bottom">5</span></div> bagian dari telur pecah di jalan. Berapa kg telur yang masih utuh?',
+                options: [
+                    '2 kg',
+                    '8 kg',
+                    '7 kg',
+                    '9 kg'
+                ],
+                correctIndex: 1, // B
+                explanation: 'Telur pecah = 10 × 1/5 = 2 kg. Telur utuh = 10 - 2 = 8 kg.'
+            }
+        ];
+
+        const STORAGE_KEY = 'quiz_pecahan_user_state_v3';
+        let userAnswers = {};
+        let currentQuestionIndex = 0;
+        let activeFilter = 'all';
+
+        function loadState() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    userAnswers = JSON.parse(saved);
+                } catch (e) {
+                    userAnswers = {};
+                }
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(userAnswers));
+        }
+
+        function renderCurrentQuestion() {
+            const container = document.getElementById('question-card-container');
+            const q = rawQuestions[currentQuestionIndex];
+            const qNum = currentQuestionIndex + 1;
+            const answered = userAnswers.hasOwnProperty(q.id);
+            const selectedOption = userAnswers[q.id];
+
+            const typeTag = q.type === 'direct' 
+                ? '<span class="bg-blue-100 text-blue-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase">Soal Langsung</span>'
+                : '<span class="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase">Soal Cerita</span>';
+
+            const optionLabels = ['A', 'B', 'C', 'D'];
+            let optionsHTML = '';
+
+            q.options.forEach((opt, optIdx) => {
+                let optStyle = 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 hover:border-indigo-300';
+                let badgeStyle = 'bg-slate-200 text-slate-700';
+
+                if (answered) {
+                    if (optIdx === q.correctIndex) {
+                        optStyle = 'border-emerald-500 bg-emerald-50 text-emerald-900 font-bold ring-2 ring-emerald-400';
+                        badgeStyle = 'bg-emerald-600 text-white';
+                    } else if (optIdx === selectedOption) {
+                        optStyle = 'border-rose-500 bg-rose-50 text-rose-900 font-bold ring-2 ring-rose-400';
+                        badgeStyle = 'bg-rose-600 text-white';
+                    } else {
+                        optStyle = 'border-slate-100 bg-slate-50 opacity-40';
+                    }
+                }
+
+                const disabledAttr = answered ? 'disabled' : '';
+
+                optionsHTML += `
+                    <button onclick="selectAnswer(${q.id}, ${optIdx})" ${disabledAttr} class="w-full text-left p-3.5 rounded-xl border text-xs sm:text-sm flex items-center gap-3 transition ${optStyle}">
+                        <span class="w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 ${badgeStyle}">${optionLabels[optIdx]}</span>
+                        <div class="flex-grow">${opt}</div>
+                    </button>
+                `;
+            });
+
+            let explanationHTML = '';
+            if (answered) {
+                const isCorrect = selectedOption === q.correctIndex;
+                const feedbackBg = isCorrect ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800';
+                const feedbackIcon = isCorrect ? '✅ Jawaban Kamu Benar!' : '❌ Jawaban Kamu Belum Tepat.';
+
+                explanationHTML = `
+                    <div class="p-3.5 rounded-xl border text-xs space-y-1.5 mt-2 ${feedbackBg}">
+                        <p class="font-extrabold text-sm flex items-center gap-1">${feedbackIcon}</p>
+                        <div class="text-slate-700 pt-1.5 border-t border-slate-200/60 leading-relaxed">
+                            <strong class="text-slate-900">Pembahasan:</strong><br>
+                            ${q.explanation}
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-xl bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">${qNum}</span>
+                            ${typeTag}
+                        </div>
+                        <span class="text-xs text-slate-400 font-semibold">Bobot: 1 Poin</span>
+                    </div>
+
+                    <div class="text-sm sm:text-base font-semibold text-slate-800 leading-relaxed">
+                        ${q.text}
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                        ${optionsHTML}
+                    </div>
+                </div>
+
+                ${explanationHTML}
+            `;
+
+            updateNavControls();
+            updateProgress();
+            renderNavGrid(activeFilter);
+        }
+
+        function updateNavControls() {
+            document.getElementById('current-q-num').textContent = currentQuestionIndex + 1;
+            document.getElementById('btn-prev').disabled = currentQuestionIndex === 0;
+            document.getElementById('btn-next').disabled = currentQuestionIndex === rawQuestions.length - 1;
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < rawQuestions.length - 1) {
+                currentQuestionIndex++;
+                renderCurrentQuestion();
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                renderCurrentQuestion();
+            }
+        }
+
+        function goToQuestion(index) {
+            currentQuestionIndex = index;
+            renderCurrentQuestion();
+        }
+
+        function renderNavGrid(filter = 'all') {
+            const navGrid = document.getElementById('nav-grid');
+            navGrid.innerHTML = '';
+
+            rawQuestions.forEach((q, idx) => {
+                if (filter === 'direct' && q.type !== 'direct') return;
+                if (filter === 'story' && q.type !== 'story') return;
+
+                const qNum = idx + 1;
+                const isAnswered = userAnswers.hasOwnProperty(q.id);
+                const isCorrect = isAnswered && userAnswers[q.id] === q.correctIndex;
+
+                let btnClass = 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-200';
+                if (isAnswered) {
+                    btnClass = isCorrect 
+                        ? 'bg-emerald-500 text-white font-bold border-emerald-600' 
+                        : 'bg-rose-500 text-white font-bold border-rose-600';
+                }
+
+                if (idx === currentQuestionIndex) {
+                    btnClass += ' ring-2 ring-indigo-600 ring-offset-1';
+                }
+
+                const btn = document.createElement('button');
+                btn.className = `py-1.5 text-xs rounded-lg border font-bold transition flex items-center justify-center ${btnClass}`;
+                btn.innerHTML = `<span>${qNum}</span>`;
+                btn.onclick = () => goToQuestion(idx);
+                navGrid.appendChild(btn);
+            });
+        }
+
+        function filterGrid(type) {
+            activeFilter = type;
+            document.querySelectorAll('[id^="btn-filter-"]').forEach(btn => {
+                btn.className = 'px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200';
+            });
+            document.getElementById(`btn-filter-${type}`).className = 'px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-700 font-bold';
+            renderNavGrid(type);
+        }
+
+        function selectAnswer(questionId, optionIndex) {
+            if (userAnswers.hasOwnProperty(questionId)) return;
+
+            userAnswers[questionId] = optionIndex;
+            saveState();
+            renderCurrentQuestion();
+        }
+
+        function updateProgress() {
+            const totalQuestions = rawQuestions.length;
+            const answeredCount = Object.keys(userAnswers).length;
+
+            let correctCount = 0;
+            rawQuestions.forEach(q => {
+                if (userAnswers[q.id] === q.correctIndex) {
+                    correctCount++;
+                }
+            });
+
+            document.getElementById('score-text').textContent = correctCount;
+            document.getElementById('answered-count').textContent = answeredCount;
+
+            const percentage = Math.round((answeredCount / totalQuestions) * 100);
+            document.getElementById('completion-percentage').textContent = `${percentage}%`;
+            document.getElementById('progress-bar').style.width = `${percentage}%`;
+        }
+
+        function resetQuiz() {
+            if (confirm('Apakah Anda yakin ingin mengulang seluruh kuis dari awal?')) {
+                userAnswers = {};
+                localStorage.removeItem(STORAGE_KEY);
+                currentQuestionIndex = 0;
+                renderCurrentQuestion();
+            }
+        }
+
+        window.onload = function() {
+            loadState();
+            renderCurrentQuestion();
+        };
+    </script>
+</body>
+</html>
